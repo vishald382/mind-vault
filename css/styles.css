@@ -129,3 +129,9 @@ details > summary { cursor: pointer; color: var(--muted); } details[open] > summ
 .hero.banner .emo { font-size: clamp(40px, 7vh, 64px); }
 .hero.wide { border-radius: var(--r); margin-bottom: 16px; height: clamp(180px, 36vh, 360px); }
 @media (max-width: 860px) { .fcard .body { padding: 16px 16px 18px; } .hero { height: clamp(150px, 28vh, 240px); } }
+/* Install button and help */
+[hidden] { display: none !important; }
+.topbar .install-btn { margin-left: auto; }
+.modal { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 18px; }
+.modal .card { max-width: 440px; width: 100%; box-shadow: var(--shadow); }
+.modal ol { padding-left: 1.2rem; } .modal li { margin-bottom: .5rem; }
