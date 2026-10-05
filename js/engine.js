@@ -13,13 +13,13 @@
 
   let S = load();
   function blank() {
-    return { v: 1, created: Date.now(), ev: {}, rev: {}, conns: [], mlinks: {}, apps: [], attempts: [], missions: [], events: [], prefs: {}, demo: false };
+    return { v: 1, created: Date.now(), ev: {}, rev: {}, conns: [], mlinks: {}, apps: [], attempts: [], missions: [], events: [], prefs: {}, daily: {}, resetAt: 0, demo: false };
   }
   function load() {
     try { const r = localStorage.getItem(KEY); if (r) return Object.assign(blank(), JSON.parse(r)); } catch (e) {}
     return blank();
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} if (MV.onSave) MV.onSave(); }
   const now = () => Date.now();
   function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   const dayRng = () => rng(Math.floor(Date.now() / DAY) + 7);
@@ -456,7 +456,31 @@
 
   function exportData() { return JSON.stringify(S, null, 2); }
   function importData(txt) { const o = JSON.parse(txt); if (!o || o.v !== 1) throw new Error("Not a MindVault export"); S = Object.assign(blank(), o); save(); }
-  function reset() { S = blank(); save(); }
+  function reset() { S = blank(); S.resetAt = now(); save(); }
+
+  /* ---------- sync: merge another device's copy into this one ---------- */
+  // Nothing is lost: evidence keeps its earliest time, lists are joined without repeats.
+  // Anything older than the latest "reset everything" is dropped on every device.
+  function mergeState(R) {
+    const L = S, out = blank(), cut = Math.max(L.resetAt || 0, R.resetAt || 0), live = t => (t || 0) > cut;
+    out.created = Math.min(L.created || now(), R.created || now()); out.resetAt = cut;
+    for (const src of [L, R]) {
+      for (const id in src.ev || {}) for (const k in src.ev[id]) { const t = src.ev[id][k]; if (typeof t !== "number" || !live(t)) continue; const e = out.ev[id] || (out.ev[id] = {}); e[k] = e[k] == null ? t : Math.min(e[k], t); }
+      for (const id in src.mlinks || {}) for (const m in src.mlinks[id]) { const t = src.mlinks[id][m]; if (!live(t)) continue; const e = out.mlinks[id] || (out.mlinks[id] = {}); e[m] = e[m] == null ? t : Math.min(e[m], t); }
+      for (const d in src.daily || {}) out.daily[d] = Object.assign({}, out.daily[d], src.daily[d]);
+    }
+    const uni = (key, lists, keep) => { const m = new Map(); lists.forEach(l => (l || []).forEach(x => { if (!x || !live(x.t)) return; const k = key(x), old = m.get(k); m.set(k, old ? (keep ? keep(old, x) : old) : x); })); return [...m.values()].sort((a, b) => a.t - b.t); };
+    new Set([...Object.keys(L.rev || {}), ...Object.keys(R.rev || {})]).forEach(id => { const l = uni(r => r.t + "|" + r.k + "|" + r.g, [(L.rev || {})[id], (R.rev || {})[id]]); if (l.length) out.rev[id] = l; });
+    out.conns = uni(c => [c.a, c.b].sort().join("|"), [L.conns, R.conns], (a, b) => a.t <= b.t ? a : b).filter(c => AM[c.a] && AM[c.b]);
+    out.apps = uni(x => x.id, [L.apps, R.apps]).filter(x => AM[x.assetId]);
+    out.attempts = uni(x => x.kind + "|" + x.id + "|" + x.t, [L.attempts, R.attempts]);
+    out.missions = uni(x => x.id, [L.missions, R.missions], (a, b) => a.report ? a : b);
+    out.events = uni(x => x.t + "|" + x.k + "|" + (x.id || ""), [L.events, R.events]).slice(-4000);
+    out.prefs = Object.assign({}, R.prefs, L.prefs); out.demo = false;
+    S = out; save();
+  }
+  // What is uploaded. The Claude API key never leaves this device.
+  function syncPayload() { const c = Object.assign({}, S, { prefs: Object.assign({}, S.prefs) }); delete c.prefs.apiKey; return JSON.stringify(c); }
 
   MV.E = {
     DAY, get S() { return S; }, save, now, uid, rng, shuffle, dayRng,
@@ -465,6 +489,6 @@
     edges, neighbors, bridgeFor, graph, pathBetween, nodeLabel, gaps, downstream, recommend, surpriseShare, domainWeights,
     buildSession, EST, acquired, counts, metricsAt, METRIC_LABELS, METRIC_HELP, series, identity, listJoin,
     addConnection, tagModel, addApp, promptWild, activeMission, missionDue, newMission, reportMission,
-    seedDemo, exportData, importData, reset, bestBy
+    seedDemo, exportData, importData, reset, bestBy, mergeState, syncPayload
   };
 })();

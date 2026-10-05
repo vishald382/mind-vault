@@ -13,6 +13,10 @@ To see the product with history, choose "Explore with 6 months of sample history
 - `js/data-assets.js` – knowledge assets and the bridges between them
 - `js/data-india.js` – Mumbai, Maharashtra and India content (tagged with `region`; shown first in the feed)
 - `js/data-wisdom.js` – Warren Buffett and Charlie Munger wisdom, and Munger's mental models
+- `js/pack-*.js` – content packs: more Mumbai and Maharashtra, more India, everyday money, great thinkers
+- `js/data-daily.js`, `js/daily.js` – word and quote of the day, Today's 5, daily reminder
+- `js/sync.js` – sync between devices through a private GitHub gist
+- `js/install.js` – the Install app button
 - `js/media.js` – pictures and emoji for each idea
 - `js/feed.js` – the scrolling feed
 - `js/data-content.js` – mental models, Story DNA, missions, mastery states

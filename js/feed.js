@@ -1,14 +1,47 @@
 /* Feed: an endless, swipeable stream of ideas. Scrolling past an idea only makes it
-   ENCOUNTERED; the checks, rescues and bridges mixed into the stream move it further. */
+   ENCOUNTERED; the checks, rescues and bridges mixed into the stream move it further.
+   Listen mode reads each card aloud and moves to the next one by itself. */
 (function () {
   const E = MV.E, { h, toast, stateBadge, dom } = MV.UI;
-  const DWELL = 1200;
+  const DWELL = 1200, TTS = window.speechSynthesis || null;
+
+  /* ---------- speaking ---------- */
+  let voice = null, speakId = 0;
+  function pickVoice() { if (!TTS) return; const vs = TTS.getVoices(); voice = vs.find(v => /en[-_]IN/i.test(v.lang)) || vs.find(v => /en[-_]GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null; }
+  if (TTS) { pickVoice(); if (TTS.addEventListener) TTS.addEventListener("voiceschanged", pickVoice); }
+  function stopSpeaking() { speakId++; if (TTS) TTS.cancel(); }
+  // parts: strings to say and numbers (pauses in ms). Long text is split into sentences, which some phones need.
+  function speak(parts, done) {
+    if (!TTS) return; stopSpeaking(); const my = speakId;
+    const queue = []; parts.forEach(p => { if (typeof p === "number") queue.push(p); else if (p) String(p).split(/(?<=[.!?])\s+/).forEach(s => s.trim() && queue.push(s.trim())); });
+    const next = () => {
+      if (my !== speakId) return; if (!queue.length) return done && done();
+      const p = queue.shift(); if (typeof p === "number") return setTimeout(next, p);
+      const u = new SpeechSynthesisUtterance(p); if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = "en-IN";
+      u.rate = 0.95; u.onend = next; u.onerror = () => { if (my === speakId) next(); }; TTS.speak(u);
+    };
+    next();
+  }
+  window.addEventListener("hashchange", stopSpeaking);
 
   function feed(root) {
     const scroller = h("div", { class: "feed-scroll", tabindex: 0, "aria-label": "Idea feed" });
     root.append(scroller);
     const shown = { idea: new Set(), check: new Set(), rescue: new Set(), bridge: new Set(), model: new Set(), story: new Set() };
-    const ideaLog = []; let n = 0, ideaN = 0;
+    const ideaLog = []; let n = 0, ideaN = 0, listen = false, active = null;
+
+    /* ---------- listen mode ---------- */
+    const fab = TTS ? h("button", { class: "listen-fab", "aria-pressed": "false", onclick: () => setListen(!listen) }, "🔊 Listen") : null;
+    if (fab) root.append(fab);
+    function setListen(on) {
+      listen = on; if (fab) { fab.textContent = on ? "⏸ Stop listening" : "🔊 Listen"; fab.classList.toggle("on", on); fab.setAttribute("aria-pressed", String(on)); }
+      if (on) { toast("Listen mode is on. Each card is read aloud and the feed moves by itself."); sayCard(active || scroller.firstElementChild, true); } else stopSpeaking();
+    }
+    function sayCard(card, auto) {
+      if (!card || !card._say) { if (auto && card && card.nextElementSibling) card.nextElementSibling.scrollIntoView({ behavior: "smooth" }); return; }
+      speak(card._say(), () => { if (card._heard) card._heard(); if (auto && listen && active === card && card.nextElementSibling) setTimeout(() => { if (listen && active === card) card.nextElementSibling.scrollIntoView({ behavior: "smooth" }); }, 700); });
+    }
+    const sayBtn = card => TTS ? h("button", { class: "btn ghost", title: "Read this card aloud", "aria-label": "Read this card aloud", onclick: () => { if (listen) return setListen(false); sayCard(card(), false); } }, "🔊") : null;
 
     /* ---------- card builders ---------- */
     const shell = (color, top, ...kids) => { const c = h("section", { class: "fcard" }, h("div", { class: "in" }, top, h("div", { class: "body" }, kids))); c.style.setProperty("--dc", color || "var(--gold)"); return c; };
@@ -26,6 +59,19 @@
       return h("div", {}, h("h3", {}, a.mcq.q), btns, fb);
     }
 
+    function todayCard() {
+      const D = MV.Daily, q = D.quote(), w = D.word(), done = D.fiveDone();
+      const date = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+      const card = shell("var(--gold)", MV.Media.banner("☀️"), h("div", { class: "eyebrow" }, date),
+        q ? h("div", { class: "mb" }, h("div", { class: "tiny muted" }, "QUOTE OF THE DAY"), h("p", { class: "lede", style: "margin-bottom:.3rem" }, "“" + q.q + "”"), h("p", { class: "small", style: "margin-bottom:.3rem" }, h("b", {}, q.by), q.who ? h("span", { class: "muted" }, ", " + q.who) : null), h("p", { class: "small muted" }, q.means)) : null,
+        w ? h("div", { class: "callout mb" }, h("div", { class: "tiny muted" }, "WORD OF THE DAY"), h("p", { style: "margin:.2rem 0" }, h("b", { style: "font:600 1.25rem var(--serif)" }, w.w), h("span", { class: "muted small" }, `  ${w.say} · ${w.pos}`)), h("p", { class: "small", style: "margin-bottom:.3rem" }, w.meaning), h("p", { class: "small muted", style: "margin:0" }, "“" + w.example + "”")) : null,
+        h("div", { class: "row between" }, h("div", {}, h("b", {}, "Today's 5"), h("div", { class: "tiny muted" }, done ? "Done for today. Well done." : "3 new ideas, 1 you may forget, 1 quick check")),
+          h("button", { class: "btn " + (done ? "" : "primary"), onclick: () => D.startFive() }, done ? "Do 5 more" : "Start →")),
+        h("div", { class: "row between mt" }, D.weekRow(), sayBtn(() => card)));
+      card._say = () => [q ? "Quote of the day." : "", q ? q.q : "", q ? "By " + q.by + "." : "", q ? q.means : "", 500, w ? "Word of the day: " + w.w + "." : "", w ? w.meaning : "", w ? "For example: " + w.example : ""];
+      return card;
+    }
+
     function ideaCard(rec) {
       const a = E.asset(rec.id), br = E.bridgeFor(a.id), status = h("span", { class: "tiny muted" });
       const quiz = h("div", { class: "mt" });
@@ -34,18 +80,21 @@
         h("h2", {}, a.title), h("p", { class: "lede" }, a.fact), h("p", {}, a.why),
         br ? h("div", { class: "callout teal mb" }, h("b", {}, "You already know something that helps to explain this. "), `${E.asset(br.other).title}: ${br.note}`) : null,
         h("details", { class: "mb" }, h("summary", {}, "How it works"), h("p", {}, a.mech), a.models.length ? h("div", { class: "row small" }, a.models.map(m => h("span", { class: "chip static" }, E.model(m).name))) : null),
-        actions(h("button", { class: "btn", onclick: e => { e.target.remove(); quiz.append(mcq(a)); } }, "Quick check"), h("a", { class: "btn ghost", href: "#/asset/" + a.id }, "Learn more →"), status), quiz);
+        actions(h("button", { class: "btn", onclick: e => { e.target.remove(); quiz.append(mcq(a)); } }, "Quick check"), h("a", { class: "btn ghost", href: "#/asset/" + a.id }, "Learn more →"), sayBtn(() => card), status), quiz);
       card._dwell = () => {
         if (E.has(a.id, "seen")) return;
         E.mark(a.id, "seen"); E.touch(a.id, 1, "seen"); E.logEvent({ k: "learn", id: a.id, surprise: !!rec.surprise, via: "feed" });
         ideaLog.push(a.id); status.textContent = "Encountered ✓";
       };
+      card._say = () => [a.title + ".", a.fact, 300, a.why, 300, a.mech];
       return card;
     }
 
     function checkCard(id) {
       const a = E.asset(id);
-      return shell("var(--teal)", MV.Media.banner("❓"), h("div", { class: "eyebrow", style: "color:var(--teal)" }, "Quick check · " + a.title), mcq(a), h("p", { class: "tiny muted mt" }, "Seeing an idea is not the same as knowing it. Checks like this move it up the ladder."));
+      const card = shell("var(--teal)", MV.Media.banner("❓"), h("div", { class: "eyebrow", style: "color:var(--teal)" }, "Quick check · " + a.title), mcq(a), h("p", { class: "tiny muted mt" }, "Seeing an idea is not the same as knowing it. Checks like this move it up the ladder."));
+      card._say = () => ["Quick check.", a.mcq.q, 3000, "The answer is: " + a.mcq.o[0]];
+      return card;
     }
 
     function rescueCard(id) {
@@ -57,39 +106,48 @@
           ev.target.parentNode.replaceWith(h("p", { class: g === 2 ? "sl-ok" : "muted" }, g === 2 ? "Rescued. The next practice will come later." : "Noted. You will see it again sooner."));
         } }, l))));
       } }, "Show answer");
-      return shell("var(--coral)", MV.Media.banner("🛟"), h("div", { class: "eyebrow", style: "color:var(--coral)" }, "Rescue this idea" + (m ? ` · ${Math.round((1 - m.R) * 100)}% chance of forgetting` : "")),
+      const card = shell("var(--coral)", MV.Media.banner("🛟"), h("div", { class: "eyebrow", style: "color:var(--coral)" }, "Rescue this idea" + (m ? ` · ${Math.round((1 - m.R) * 100)}% chance of forgetting` : "")),
         h("h2", {}, a.q), h("p", { class: "muted" }, a.title + ". Answer in your mind, then see the answer."), reveal, out);
+      card._say = () => ["Do you remember this one?", a.q, 4000, "The answer.", a.a];
+      return card;
     }
 
     function bridgeCard(e) {
       const a = E.asset(e.a), b = E.asset(e.b), cross = a.domain !== b.domain;
-      return shell("var(--gold)", MV.Media.banner("🔗"), h("div", { class: "eyebrow" }, cross ? "A link between two different fields" : "A link between two things you know"),
+      const card = shell("var(--gold)", MV.Media.banner("🔗"), h("div", { class: "eyebrow" }, cross ? "A link between two different fields" : "A link between two things you know"),
         h("h2", {}, a.title, h("span", { class: "gold" }, " ↔ "), b.title), h("p", { class: "lede" }, e.note),
         actions(h("button", { class: "btn primary", onclick: ev => { E.addConnection(e.a, e.b, e.note, "feed"); ev.target.replaceWith(h("span", { class: "sl-ok" }, "Added to your knowledge graph.")); } }, "I see the link. Add it to my graph"), h("a", { class: "btn ghost", href: "#/graph" }, "Open graph")));
+      card._say = () => ["A link between two ideas.", a.title + ", and " + b.title + ".", e.note];
+      return card;
     }
 
     function modelCard(m) {
       const ex = E.assets().filter(a => a.models.includes(m.id) && E.stateIdx(a.id) >= 0).slice(0, 3);
-      return shell("var(--violet)", MV.Media.banner("🧠"), h("div", { class: "eyebrow", style: "color:var(--violet)" }, "Mental model"), h("h2", {}, m.name), h("p", { class: "lede" }, m.line),
+      const card = shell("var(--violet)", MV.Media.banner("🧠"), h("div", { class: "eyebrow", style: "color:var(--violet)" }, "Mental model"), h("h2", {}, m.name), h("p", { class: "lede" }, m.line),
         h("p", {}, h("b", {}, "Ask: "), m.ask), h("p", { class: "muted" }, h("b", {}, "Example: "), m.ex),
         ex.length ? h("div", { class: "row small" }, h("span", { class: "muted" }, "You have seen it in:"), ex.map(a => h("a", { class: "chip", href: "#/asset/" + a.id }, a.title))) : null);
+      card._say = () => ["A mental model: " + m.name + ".", m.line, "Ask yourself: " + m.ask, "For example: " + m.ex];
+      return card;
     }
 
     function storyCard(st) {
       const full = h("p", { style: "font:1.08rem/1.7 var(--serif)" }, [st.setting, st.conflict, st.surprise, st.turning, st.payoff].join(" "));
       const more = h("div"), a = E.asset(st.assetId);
+      const open = () => { if (card._read) return; more.append(full, h("div", { class: "callout mb" }, h("b", {}, "Meaning: "), st.meaning)); card._read = true; card._dwell(); };
       const card = shell(MV.DOMAIN_COLORS[a.domain], MV.Media.hero(a.id), h("div", { class: "eyebrow" }, "Story"), h("h2", {}, st.title), h("p", { class: "lede" }, st.hook), more,
-        actions(h("button", { class: "btn", onclick: e => { e.target.remove(); more.append(full, h("div", { class: "callout mb" }, h("b", {}, "Meaning: "), st.meaning)); card._read = true; card._dwell(); } }, "Read the story"),
-          h("button", { class: "btn ghost", onclick: () => MV.Session.startSteps([{ kind: "story", id: st.assetId }], "Storytelling coach") }, "Practise telling it")));
+        actions(h("button", { class: "btn", onclick: e => { e.target.remove(); open(); } }, "Read the story"),
+          h("button", { class: "btn ghost", onclick: () => MV.Session.startSteps([{ kind: "story", id: st.assetId }], "Storytelling coach") }, "Practise telling it"), sayBtn(() => card)));
       card._dwell = () => { if (!card._read || E.has(a.id, "seen")) return; E.mark(a.id, "seen"); E.touch(a.id, 1, "seen"); E.logEvent({ k: "learn", id: a.id, via: "feed" }); ideaLog.push(a.id); };
+      card._say = () => ["A story: " + st.title + ".", st.hook, 400, st.setting, st.conflict, st.surprise, st.turning, st.payoff, 400, "What it means.", st.meaning];
+      card._heard = open;
       return card;
     }
 
     /* ---------- stream ---------- */
     const fresh = (set, list, key = x => x) => { let l = list.filter(x => !set.has(key(x))); if (!l.length && list.length) { set.clear(); l = list; } return l; };
     function nextIdea() {
-      // Out of every four ideas: two local (Mumbai, Maharashtra, India), one Buffett and Munger, one from the wider world.
-      const recs = E.recommend(120).filter(x => !shown.idea.has(x.id)), slot = ["local", "pin", "local", "world"][ideaN++ % 4], kind = x => { const a = E.asset(x.id); return a.region ? "local" : a.pin ? "pin" : "world"; };
+      // Out of every four ideas: two local (Mumbai, Maharashtra, India), one "pinned" (Buffett and Munger, everyday money), one from the wider world.
+      const recs = E.recommend(400).filter(x => !shown.idea.has(x.id)), slot = ["local", "pin", "local", "world"][ideaN++ % 4], kind = x => { const a = E.asset(x.id); return a.region ? "local" : a.pin ? "pin" : "world"; };
       const r = recs.find(x => kind(x) === slot) || recs[0];
       if (!r) return null; shown.idea.add(r.id); return ideaCard(r);
     }
@@ -124,18 +182,18 @@
       return nextRescue(true) || nextCheck();
     }
 
-    const top = () => { if (scroller.scrollTop + scroller.clientHeight * 3 >= scroller.scrollHeight) more(3); };
+    const top = () => { if (!scroller.clientHeight) return; if (scroller.scrollTop + scroller.clientHeight * 3 >= scroller.scrollHeight) more(3); };
     const io = new IntersectionObserver(entries => entries.forEach(en => {
       const c = en.target;
-      if (en.isIntersecting) { if (c._dwell) c._t = setTimeout(c._dwell, DWELL); top(); }
+      if (en.isIntersecting) { if (c._dwell) c._t = setTimeout(c._dwell, DWELL); top(); if (active !== c) { active = c; if (listen) sayCard(c, true); } }
       else clearTimeout(c._t);
     }), { root: scroller, rootMargin: "-45% 0px -45% 0px" });
     scroller.addEventListener("scroll", top, { passive: true });
     function more(k) { for (let i = 0; i < k; i++) { const c = nextCard(); if (!c) break; scroller.append(c); io.observe(c); } }
 
+    const first = todayCard(); scroller.append(first); io.observe(first); active = first;
     more(4);
-    if (!scroller.children.length) scroller.append(shell(null, null, h("h2", {}, "Nothing to show yet"), h("a", { class: "btn primary", href: "#/today" }, "Start a session")));
-    else scroller.firstElementChild.append(h("div", { class: "fhint", "aria-hidden": "true" }, "Scroll ↓"));
+    first.append(h("div", { class: "fhint", "aria-hidden": "true" }, "Scroll ↓"));
     const step = d => scroller.scrollBy({ top: d * scroller.clientHeight, behavior: "smooth" });
     scroller.addEventListener("keydown", e => {
       if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;

@@ -72,7 +72,7 @@
     deeper: "Buffett's own test is pricing power: can the business raise its price without losing customers? If it must pray before raising prices by a little, it has no moat." },
 
   { id: "bm-rule-one", type: "insight", title: "Rule No. 1: never lose money", value: 4, cue: "risk, or chasing big returns",
-    fact: "Buffett's most famous rule: “Rule No. 1: Never lose money. Rule No. 2: Never forget Rule No. 1.”",
+    fact: "A rule that is widely credited to Buffett: “Rule No. 1: Never lose money. Rule No. 2: Never forget Rule No. 1.”",
     why: "He does not mean prices never fall. He means: do not take risks that can wipe you out. Losses hurt more than equal gains help.",
     mech: "The arithmetic is unfair. If you lose 50%, you then need a 100% gain just to get back to where you began. And compounding only works if you stay in the game. One big loss breaks the chain of many good years.",
     models: ["margin-of-safety", "compounding", "inversion"],

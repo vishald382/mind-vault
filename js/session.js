@@ -6,7 +6,7 @@
   MV.session = ses;
 
   function start(plan) {
-    ses.plan = plan; ses.i = 0; ses.results = []; ses.started = Date.now(); ses.conn0 = E.S.conns.length;
+    ses.plan = plan; ses.ended = false; ses.i = 0; ses.results = []; ses.started = Date.now(); ses.conn0 = E.S.conns.length;
     ses.changes = E.trackChanges(true); E.logEvent({ k: "session", intent: plan.intent, minutes: plan.minutes, steps: plan.steps.length });
     const same = location.hash === "#/session"; nav("#/session"); if (same) window.dispatchEvent(new HashChangeEvent("hashchange"));
   }
@@ -25,7 +25,7 @@
     const R = { learn, recognize, recall, rescue: recall, explain, explain10: explain, connect, story, convo, apply, challenge }[step.kind];
     card.append(h("div", { class: "row between" }, h("div", { class: "eyebrow" }, labelFor(step)), h("div", { class: "row" }, step.surprise ? h("span", { class: "badge sur" }, "Surprise") : null, step.gap ? h("span", { class: "badge gap" }, "Gap") : null)));
     R(card, step, a, next);
-    wrap.append(h("div", { class: "row between mt" }, h("button", { class: "btn ghost sm", onclick: () => { if (confirm("End this session?")) { ses.i = total; rerender(); } } }, "End session"), h("button", { class: "btn ghost sm", onclick: next }, "Skip this step →")));
+    wrap.append(h("div", { class: "row between mt" }, h("button", { class: "btn ghost sm", onclick: () => { if (confirm("End this session?")) { ses.ended = true; ses.i = total; rerender(); } } }, "End session"), h("button", { class: "btn ghost sm", onclick: next }, "Skip this step →")));
     root.append(wrap);
   }
   function labelFor(step) {
@@ -252,6 +252,7 @@
   function renderSummary(root) {
     const ch = ses.changes || [], conns = E.S.conns.length - ses.conn0, c = E.counts();
     E.trackChanges(false);
+    if (ses.plan && ses.plan.intent === "today5" && !ses.ended) MV.Daily.markFive();
     root.append(h("div", { class: "stage" }, h("div", { class: "card hl" }, h("div", { class: "eyebrow" }, "Session complete"), h("h2", {}, ch.length || conns ? "You moved ideas up the ladder." : "Time well spent. Knowledge grows when you practise again and again."),
       ch.length ? h("ul", { class: "list" }, ch.map(x => h("li", {}, h("b", {}, E.asset(x.id).title), " ", stateBadge(x.from), " → ", stateBadge(x.to)))) : h("p", { class: "muted" }, "No idea moved up a level this time. But practice still makes your memory stronger, even when the level stays the same."),
       conns ? h("p", {}, h("b", { class: "gold" }, conns + (conns > 1 ? " new connections" : " new connection")), " added to your knowledge graph.") : null,
