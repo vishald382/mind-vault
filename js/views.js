@@ -14,7 +14,7 @@
   const NEED_LABEL = { learn: "Learn it", recognize: "Check that you know it", recall: "Remember it without help", explain: "Explain how it works", connect: "Connect it to another idea", explain10: "Explain it to a 10-year-old", convo: "Get ready to talk about it", story: "Tell its story", apply: "Use it, then teach it", done: "Mastered. Keep it fresh" };
   function assetCard(a, extra) {
     const i = E.stateIdx(a.id);
-    return h("a", { class: "card acard", href: "#/asset/" + a.id }, h("div", { class: "row between small muted" }, h("span", {}, dom(a.domain), a.region ? " · " + MV.REGIONS[a.region] : ""), stateBadge(i)), h("h3", { style: "margin-top:8px" }, a.title), h("p", { class: "small muted", style: "margin:0" }, extra || (a.fact.length > 120 ? a.fact.slice(0, 118) + "…" : a.fact)));
+    return h("a", { class: "card acard", href: "#/asset/" + a.id }, h("div", { class: "row between small muted" }, h("span", {}, dom(a.domain), a.region ? " · " + MV.REGIONS[a.region] : ""), stateBadge(i)), h("h3", { style: "margin-top:8px" }, MV.Media.emoji(a.id) + " " + a.title), h("p", { class: "small muted", style: "margin:0" }, extra || (a.fact.length > 120 ? a.fact.slice(0, 118) + "…" : a.fact)));
   }
 
   /* ================= TODAY ================= */
@@ -170,6 +170,7 @@
     const a = E.asset(id); if (!a) return root.append(empty("We could not find that idea."));
     const i = E.stateIdx(id), need = E.nextNeed(id), m = E.mem(id), st = E.storyOfAsset(id);
     root.append(h("header", { class: "pg" }, h("a", { class: "small", href: "#/library" }, "← Library"), h("div", { class: "row small muted mt" }, dom(a.domain), "·", a.type, "·", stateBadge(i)), h("h1", {}, a.title)));
+    root.append(MV.Media.hero(id, "wide"));
     root.append(h("div", { class: "card mb" }, ladder(id), h("div", { class: "row between mt" }, h("div", {}, h("div", { class: "tiny muted" }, "NEXT STEP"), h("b", {}, NEED_LABEL[need])), h("button", { class: "btn primary", onclick: () => MV.Session.startSteps(stepsFor(id), a.title) }, need === "learn" ? "Learn it →" : "Do it now →"))));
     if (i < 0) { root.append(h("div", { class: "card" }, h("p", { class: "muted" }, "You have not seen this idea yet. To learn it well, you must test yourself, not only read it."), (() => { const b = E.bridgeFor(id); return b ? h("div", { class: "callout teal" }, h("b", {}, "You already know something that helps to explain this: "), E.asset(b.other).title) : null; })())); return; }
     const F = (k, v) => h("div", { class: "field" }, h("div", { class: "k" }, k), h("div", {}, v));

@@ -11,7 +11,7 @@
     const ideaLog = []; let n = 0, ideaN = 0;
 
     /* ---------- card builders ---------- */
-    const shell = (color, ...kids) => { const c = h("section", { class: "fcard" }, h("div", { class: "in" }, kids)); c.style.setProperty("--dc", color || "var(--gold)"); return c; };
+    const shell = (color, top, ...kids) => { const c = h("section", { class: "fcard" }, h("div", { class: "in" }, top, h("div", { class: "body" }, kids))); c.style.setProperty("--dc", color || "var(--gold)"); return c; };
     const actions = (...kids) => h("div", { class: "row factions" }, kids);
 
     function mcq(a, done) {
@@ -29,7 +29,7 @@
     function ideaCard(rec) {
       const a = E.asset(rec.id), br = E.bridgeFor(a.id), status = h("span", { class: "tiny muted" });
       const quiz = h("div", { class: "mt" });
-      const card = shell(MV.DOMAIN_COLORS[a.domain],
+      const card = shell(MV.DOMAIN_COLORS[a.domain], MV.Media.hero(a.id),
         h("div", { class: "row between mb" }, h("span", { class: "small muted" }, dom(a.domain), " · ", a.region ? MV.REGIONS[a.region] + " · " : "", a.type), h("span", { class: "row" }, rec.surprise ? h("span", { class: "badge sur" }, "Surprise") : null, rec.gap ? h("span", { class: "badge gap" }, "Fills a gap") : null)),
         h("h2", {}, a.title), h("p", { class: "lede" }, a.fact), h("p", {}, a.why),
         br ? h("div", { class: "callout teal mb" }, h("b", {}, "You already know something that helps to explain this. "), `${E.asset(br.other).title}: ${br.note}`) : null,
@@ -45,7 +45,7 @@
 
     function checkCard(id) {
       const a = E.asset(id);
-      return shell("var(--teal)", h("div", { class: "eyebrow", style: "color:var(--teal)" }, "Quick check · " + a.title), mcq(a), h("p", { class: "tiny muted mt" }, "Seeing an idea is not the same as knowing it. Checks like this move it up the ladder."));
+      return shell("var(--teal)", MV.Media.banner("❓"), h("div", { class: "eyebrow", style: "color:var(--teal)" }, "Quick check · " + a.title), mcq(a), h("p", { class: "tiny muted mt" }, "Seeing an idea is not the same as knowing it. Checks like this move it up the ladder."));
     }
 
     function rescueCard(id) {
@@ -57,20 +57,20 @@
           ev.target.parentNode.replaceWith(h("p", { class: g === 2 ? "sl-ok" : "muted" }, g === 2 ? "Rescued. The next practice will come later." : "Noted. You will see it again sooner."));
         } }, l))));
       } }, "Show answer");
-      return shell("var(--coral)", h("div", { class: "eyebrow", style: "color:var(--coral)" }, "Rescue this idea" + (m ? ` · ${Math.round((1 - m.R) * 100)}% chance of forgetting` : "")),
+      return shell("var(--coral)", MV.Media.banner("🛟"), h("div", { class: "eyebrow", style: "color:var(--coral)" }, "Rescue this idea" + (m ? ` · ${Math.round((1 - m.R) * 100)}% chance of forgetting` : "")),
         h("h2", {}, a.q), h("p", { class: "muted" }, a.title + ". Answer in your mind, then see the answer."), reveal, out);
     }
 
     function bridgeCard(e) {
       const a = E.asset(e.a), b = E.asset(e.b), cross = a.domain !== b.domain;
-      return shell("var(--gold)", h("div", { class: "eyebrow" }, cross ? "A link between two different fields" : "A link between two things you know"),
+      return shell("var(--gold)", MV.Media.banner("🔗"), h("div", { class: "eyebrow" }, cross ? "A link between two different fields" : "A link between two things you know"),
         h("h2", {}, a.title, h("span", { class: "gold" }, " ↔ "), b.title), h("p", { class: "lede" }, e.note),
         actions(h("button", { class: "btn primary", onclick: ev => { E.addConnection(e.a, e.b, e.note, "feed"); ev.target.replaceWith(h("span", { class: "sl-ok" }, "Added to your knowledge graph.")); } }, "I see the link. Add it to my graph"), h("a", { class: "btn ghost", href: "#/graph" }, "Open graph")));
     }
 
     function modelCard(m) {
       const ex = E.assets().filter(a => a.models.includes(m.id) && E.stateIdx(a.id) >= 0).slice(0, 3);
-      return shell("var(--violet)", h("div", { class: "eyebrow", style: "color:var(--violet)" }, "Mental model"), h("h2", {}, m.name), h("p", { class: "lede" }, m.line),
+      return shell("var(--violet)", MV.Media.banner("🧠"), h("div", { class: "eyebrow", style: "color:var(--violet)" }, "Mental model"), h("h2", {}, m.name), h("p", { class: "lede" }, m.line),
         h("p", {}, h("b", {}, "Ask: "), m.ask), h("p", { class: "muted" }, h("b", {}, "Example: "), m.ex),
         ex.length ? h("div", { class: "row small" }, h("span", { class: "muted" }, "You have seen it in:"), ex.map(a => h("a", { class: "chip", href: "#/asset/" + a.id }, a.title))) : null);
     }
@@ -78,7 +78,7 @@
     function storyCard(st) {
       const full = h("p", { style: "font:1.08rem/1.7 var(--serif)" }, [st.setting, st.conflict, st.surprise, st.turning, st.payoff].join(" "));
       const more = h("div"), a = E.asset(st.assetId);
-      const card = shell(MV.DOMAIN_COLORS[a.domain], h("div", { class: "eyebrow" }, "Story"), h("h2", {}, st.title), h("p", { class: "lede" }, st.hook), more,
+      const card = shell(MV.DOMAIN_COLORS[a.domain], MV.Media.hero(a.id), h("div", { class: "eyebrow" }, "Story"), h("h2", {}, st.title), h("p", { class: "lede" }, st.hook), more,
         actions(h("button", { class: "btn", onclick: e => { e.target.remove(); more.append(full, h("div", { class: "callout mb" }, h("b", {}, "Meaning: "), st.meaning)); card._read = true; card._dwell(); } }, "Read the story"),
           h("button", { class: "btn ghost", onclick: () => MV.Session.startSteps([{ kind: "story", id: st.assetId }], "Storytelling coach") }, "Practise telling it")));
       card._dwell = () => { if (!card._read || E.has(a.id, "seen")) return; E.mark(a.id, "seen"); E.touch(a.id, 1, "seen"); E.logEvent({ k: "learn", id: a.id, via: "feed" }); ideaLog.push(a.id); };
@@ -134,7 +134,7 @@
     function more(k) { for (let i = 0; i < k; i++) { const c = nextCard(); if (!c) break; scroller.append(c); io.observe(c); } }
 
     more(4);
-    if (!scroller.children.length) scroller.append(shell(null, h("h2", {}, "Nothing to show yet"), h("a", { class: "btn primary", href: "#/today" }, "Start a session")));
+    if (!scroller.children.length) scroller.append(shell(null, null, h("h2", {}, "Nothing to show yet"), h("a", { class: "btn primary", href: "#/today" }, "Start a session")));
     else scroller.firstElementChild.append(h("div", { class: "fhint", "aria-hidden": "true" }, "Scroll ↓"));
     const step = d => scroller.scrollBy({ top: d * scroller.clientHeight, behavior: "smooth" });
     scroller.addEventListener("keydown", e => {
