@@ -88,9 +88,9 @@
     /* ---------- stream ---------- */
     const fresh = (set, list, key = x => x) => { let l = list.filter(x => !set.has(key(x))); if (!l.length && list.length) { set.clear(); l = list; } return l; };
     function nextIdea() {
-      // Two local ideas (Mumbai, Maharashtra, India) for every global one, while both last.
-      const recs = E.recommend(120).filter(x => !shown.idea.has(x.id)), wantLocal = ideaN++ % 3 !== 2;
-      const r = recs.find(x => !!E.asset(x.id).region === wantLocal) || recs[0];
+      // Out of every four ideas: two local (Mumbai, Maharashtra, India), one Buffett and Munger, one from the wider world.
+      const recs = E.recommend(120).filter(x => !shown.idea.has(x.id)), slot = ["local", "pin", "local", "world"][ideaN++ % 4], kind = x => { const a = E.asset(x.id); return a.region ? "local" : a.pin ? "pin" : "world"; };
+      const r = recs.find(x => kind(x) === slot) || recs[0];
       if (!r) return null; shown.idea.add(r.id); return ideaCard(r);
     }
     function nextCheck() {
