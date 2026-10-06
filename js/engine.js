@@ -171,7 +171,7 @@
     const unmetPrereq = a => (a.requires || []).some(q => stateIdx(q) < 0);
     const bsMemo = new Map(), bs = id => { if (!bsMemo.has(id)) bsMemo.set(id, bridgeScore(id)); return bsMemo.get(id); };
     const scored = unseen.map(a => {
-      let sc = a.value + (a.region || a.pin ? 1.5 : 0) + bs(a.id) + (dw.tot ? (dw.w[a.domain] || 0) / dw.tot * 2 : 0) + r() * 0.6;
+      let sc = a.value + (a.region || a.pin ? 1.5 : 0) + (a.now ? 1 : 0) + bs(a.id) + (dw.tot ? (dw.w[a.domain] || 0) / dw.tot * 2 : 0) + r() * 0.6;
       if (gapIds.has(a.id)) sc += 3;
       if (unmetPrereq(a) && !gapIds.has(a.id)) sc -= 2;
       return { a, sc };

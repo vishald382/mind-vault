@@ -162,18 +162,18 @@
     root.append(page("Knowledge assets", "Your library", "Each fact, idea, model, story and word is tracked separately, from the first time you see it until you master it."));
     const grid = h("div", { class: "grid g3" }), f0 = h("div", { class: "row mb" }), f1 = h("div", { class: "row mb" }), f2 = h("div", { class: "row mb" });
     const draw = () => { f0.innerHTML = ""; f1.innerHTML = ""; f2.innerHTML = ""; grid.innerHTML = "";
-      [["all", "All places"], ...Object.entries(MV.REGIONS), ["world", "World"]].forEach(([k, l]) => f0.append(h("button", { class: "chip" + (lf.reg === k ? " on" : ""), onclick: () => { lf.reg = k; draw(); } }, l)));
+      [["all", "All places"], ...Object.entries(MV.REGIONS), ["world", "World"], ["now", "Right now (2026)"]].forEach(([k, l]) => f0.append(h("button", { class: "chip" + (lf.reg === k ? " on" : ""), onclick: () => { lf.reg = k; draw(); } }, l)));
       [["all", "All fields"], ...Object.entries(MV.DOMAINS)].forEach(([k, l]) => f1.append(h("button", { class: "chip" + (lf.dom === k ? " on" : ""), onclick: () => { lf.dom = k; draw(); } }, l)));
       [["all", "All levels"], ["met", "Seen"], ["unmet", "Not seen yet"], ["risk", "About to forget"], ["mastered", "Mastered"]].forEach(([k, l]) => f2.append(h("button", { class: "chip" + (lf.st === k ? " on" : ""), onclick: () => { lf.st = k; draw(); } }, l)));
       const risk = new Set(E.rescueList().map(r => r.id));
-      const list = A().filter(a => (lf.dom === "all" || a.domain === lf.dom) && (lf.reg === "all" || (a.region || "world") === lf.reg) && ({ all: true, met: E.stateIdx(a.id) >= 0, unmet: E.stateIdx(a.id) < 0, risk: risk.has(a.id), mastered: E.stateIdx(a.id) === 8 })[lf.st]).sort((a, b) => E.stateIdx(b.id) - E.stateIdx(a.id));
+      const list = A().filter(a => (lf.dom === "all" || a.domain === lf.dom) && (lf.reg === "all" || (lf.reg === "now" ? !!a.now : (a.region || "world") === lf.reg)) && ({ all: true, met: E.stateIdx(a.id) >= 0, unmet: E.stateIdx(a.id) < 0, risk: risk.has(a.id), mastered: E.stateIdx(a.id) === 8 })[lf.st]).sort((a, b) => E.stateIdx(b.id) - E.stateIdx(a.id));
       list.forEach(a => grid.append(assetCard(a))); if (!list.length) grid.append(h("p", { class: "muted" }, "No ideas match these filters.")); };
     draw(); root.append(f0, f1, f2, grid);
   }
   function asset(root, id) {
     const a = E.asset(id); if (!a) return root.append(empty("We could not find that idea."));
     const i = E.stateIdx(id), need = E.nextNeed(id), m = E.mem(id), st = E.storyOfAsset(id);
-    root.append(h("header", { class: "pg" }, h("a", { class: "small", href: "#/library" }, "← Library"), h("div", { class: "row small muted mt" }, dom(a.domain), "·", a.type, "·", stateBadge(i)), h("h1", {}, a.title)));
+    root.append(h("header", { class: "pg" }, h("a", { class: "small", href: "#/library" }, "← Library"), h("div", { class: "row small muted mt" }, dom(a.domain), "·", a.type, "·", stateBadge(i), a.now ? h("span", { class: "badge now" }, "Right now · 2026") : null), h("h1", {}, a.title)));
     root.append(MV.Media.hero(id, "wide"));
     root.append(h("div", { class: "card mb" }, ladder(id), h("div", { class: "row between mt" }, h("div", {}, h("div", { class: "tiny muted" }, "NEXT STEP"), h("b", {}, NEED_LABEL[need])), h("button", { class: "btn primary", onclick: () => MV.Session.startSteps(stepsFor(id), a.title) }, need === "learn" ? "Learn it →" : "Do it now →"))));
     if (i < 0) { root.append(h("div", { class: "card" }, h("p", { class: "muted" }, "You have not seen this idea yet. To learn it well, you must test yourself, not only read it."), (() => { const b = E.bridgeFor(id); return b ? h("div", { class: "callout teal" }, h("b", {}, "You already know something that helps to explain this: "), E.asset(b.other).title) : null; })())); return; }

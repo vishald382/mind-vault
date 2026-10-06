@@ -51,6 +51,7 @@ nav a .dot { margin-left: auto; font-size: .72rem; background: var(--coral); col
 .dotc { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .badge { display: inline-block; font-size: .72rem; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); letter-spacing: .02em; white-space: nowrap; }
 .badge.sur { color: var(--violet); border-color: var(--violet); } .badge.gap { color: var(--teal); border-color: var(--teal); } .badge.risk { color: var(--coral); border-color: var(--coral); }
+.badge.now { color: var(--ok); border-color: var(--ok); }
 input[type=text], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 textarea { min-height: 130px; resize: vertical; } input:focus, textarea:focus, select:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .lede { font: 1.35rem/1.4 var(--serif); }

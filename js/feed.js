@@ -76,7 +76,7 @@
       const a = E.asset(rec.id), br = E.bridgeFor(a.id), status = h("span", { class: "tiny muted" });
       const quiz = h("div", { class: "mt" });
       const card = shell(MV.DOMAIN_COLORS[a.domain], MV.Media.hero(a.id),
-        h("div", { class: "row between mb" }, h("span", { class: "small muted" }, dom(a.domain), " · ", a.region ? MV.REGIONS[a.region] + " · " : "", a.type), h("span", { class: "row" }, rec.surprise ? h("span", { class: "badge sur" }, "Surprise") : null, rec.gap ? h("span", { class: "badge gap" }, "Fills a gap") : null)),
+        h("div", { class: "row between mb" }, h("span", { class: "small muted" }, dom(a.domain), " · ", a.region ? MV.REGIONS[a.region] + " · " : "", a.type), h("span", { class: "row" }, rec.surprise ? h("span", { class: "badge sur" }, "Surprise") : null, rec.gap ? h("span", { class: "badge gap" }, "Fills a gap") : null, a.now ? h("span", { class: "badge now" }, "Right now · 2026") : null)),
         h("h2", {}, a.title), h("p", { class: "lede" }, a.fact), h("p", {}, a.why),
         br ? h("div", { class: "callout teal mb" }, h("b", {}, "You already know something that helps to explain this. "), `${E.asset(br.other).title}: ${br.note}`) : null,
         h("details", { class: "mb" }, h("summary", {}, "How it works"), h("p", {}, a.mech), a.models.length ? h("div", { class: "row small" }, a.models.map(m => h("span", { class: "chip static" }, E.model(m).name))) : null),
