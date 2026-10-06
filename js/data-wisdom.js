@@ -150,7 +150,7 @@
     deeper: "Buffett says he learned it from his father, Howard, who did what he believed was right even when it made him unpopular. The idea is told in his biography, The Snowball." },
 
   { id: "bm-reputation", type: "insight", title: "Twenty years to build, five minutes to ruin", value: 4, cue: "trust, scandals or short cuts",
-    fact: "Buffett says it takes 20 years to build a reputation and five minutes to ruin it. If you think about that, you will do things differently.",
+    fact: "A line often credited to Buffett: it takes 20 years to build a reputation and five minutes to ruin it. If you think about that, you will do things differently.",
     why: "Trust is worth more than any single profit, and it is the easiest thing to lose.",
     mech: "People deal with you on easy terms when they trust you: no long checks, a quick yes. One dishonest act ends that for years. In 1991, when the bank Salomon Brothers was caught cheating, Buffett took charge and told staff: lose money for the firm and I will be understanding; lose a shred of reputation and I will be ruthless.",
     models: ["second-order-thinking", "compounding"],
@@ -215,7 +215,7 @@
     deeper: "In a 1986 school speech Munger did exactly this. He gave the students a list of sure ways to have a miserable life, such as being unreliable and refusing to learn from other people's mistakes." },
 
   { id: "bm-incentives", type: "mental model", title: "Show me the incentive", value: 5, cue: "why people behave as they do at work",
-    fact: "Munger said: “Show me the incentive and I'll show you the outcome.” He added that he had been in the top few per cent of his age group in understanding the power of incentives all his life, and all his life he had underestimated it.",
+    fact: "A line often credited to Munger: “Show me the incentive and I'll show you the outcome.” He added that he had been in the top few per cent of his age group in understanding the power of incentives all his life, and all his life he had underestimated it.",
     why: "If you want to know what people will do, do not listen to what they say. Look at what they are rewarded for.",
     mech: "His favourite example is the courier company FedEx. Its night workers were paid by the hour and the packages were always late. The company changed to paying per shift, and let workers go home when the work was done. The delay vanished.",
     models: ["incentives", "goodharts-law"],
@@ -280,7 +280,7 @@
     deeper: "This is inversion used on a whole career. Amateur tennis works the same way: most points are lost by errors, so the player who just keeps the ball in play usually wins." },
 
   { id: "bm-patience", type: "insight", title: "The big money is in the waiting", value: 5, cue: "patience, or the urge to do something",
-    fact: "Munger said the big money is not in the buying or the selling, but in the waiting. Buffett put it this way: our favourite holding period is forever.",
+    fact: "A saying often credited to Munger: the big money is not in the buying or the selling, but in the waiting. Buffett put it this way: our favourite holding period is forever.",
     why: "Most people feel they must act. Doing nothing, when nothing needs doing, is a rare and valuable skill.",
     mech: "Compounding needs time, and every time you sell you stop it and pay costs and tax. A great business does the work for you if you leave it alone. Berkshire has held its Coca-Cola shares since 1988.",
     models: ["compounding", "opportunity-cost"],

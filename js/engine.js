@@ -92,14 +92,19 @@
   }
 
   /* ---------- graph ---------- */
+  // With hundreds of ideas this is called very often, so the list is cached and the
+  // neighbours of each idea are indexed. The cache is rebuilt when a connection is added.
+  let edgeCache = null, nbCache = null, edgeKey = "";
   function edges() {
+    const key = MV.LINKS.length + ":" + S.conns.length + ":" + (S.conns.length ? S.conns[S.conns.length - 1].id : "");
+    if (edgeCache && edgeKey === key) return edgeCache;
     const out = MV.LINKS.map(([a, b, note]) => ({ a, b, note, src: "seed" }));
     S.conns.forEach(c => out.push({ a: c.a, b: c.b, note: c.note, src: "user", t: c.t }));
-    return out;
+    nbCache = new Map();
+    out.forEach(e => { (nbCache.get(e.a) || nbCache.set(e.a, []).get(e.a)).push({ id: e.b, note: e.note, src: e.src }); (nbCache.get(e.b) || nbCache.set(e.b, []).get(e.b)).push({ id: e.a, note: e.note, src: e.src }); });
+    edgeCache = out; edgeKey = key; return out;
   }
-  function neighbors(id) {
-    return edges().filter(e => e.a === id || e.b === id).map(e => ({ id: e.a === id ? e.b : e.a, note: e.note, src: e.src }));
-  }
+  function neighbors(id) { edges(); return nbCache.get(id) || []; }
   function bridgeFor(id) {
     const known = x => stateIdx(x) >= 1 && x !== id;
     const nb = neighbors(id).filter(n => known(n.id)).sort((p, q) => stateIdx(q.id) - stateIdx(p.id));
@@ -164,19 +169,20 @@
     const r = dayRng(), dw = domainWeights(), top2 = dw.top.slice(0, 2), gs = gaps(), gapIds = new Set(gs.map(g => g.id));
     const unseen = A.filter(a => stateIdx(a.id) < 0);
     const unmetPrereq = a => (a.requires || []).some(q => stateIdx(q) < 0);
+    const bsMemo = new Map(), bs = id => { if (!bsMemo.has(id)) bsMemo.set(id, bridgeScore(id)); return bsMemo.get(id); };
     const scored = unseen.map(a => {
-      let sc = a.value + (a.region || a.pin ? 1.5 : 0) + bridgeScore(a.id) + (dw.tot ? (dw.w[a.domain] || 0) / dw.tot * 2 : 0) + r() * 0.6;
+      let sc = a.value + (a.region || a.pin ? 1.5 : 0) + bs(a.id) + (dw.tot ? (dw.w[a.domain] || 0) / dw.tot * 2 : 0) + r() * 0.6;
       if (gapIds.has(a.id)) sc += 3;
       if (unmetPrereq(a) && !gapIds.has(a.id)) sc -= 2;
       return { a, sc };
     }).sort((x, y) => y.sc - x.sc);
     let nSur = o.surprise ? n : (n >= 5 ? Math.max(1, Math.round(n * 0.15)) : (r() < 0.18 ? 1 : 0));
     if (o.noSurprise) nSur = 0;
-    const sur = scored.filter(x => !top2.includes(x.a.domain) && bridgeScore(x.a.id) > 0 && !unmetPrereq(x.a))
-      .sort((x, y) => (bridgeScore(y.a.id) + r() * 0.4) - (bridgeScore(x.a.id) + r() * 0.4)).slice(0, nSur);
+    const sur = scored.filter(x => !top2.includes(x.a.domain) && bs(x.a.id) > 0 && !unmetPrereq(x.a))
+      .sort((x, y) => (bs(y.a.id) + r() * 0.4) - (bs(x.a.id) + r() * 0.4)).slice(0, nSur);
     const surIds = new Set(sur.map(x => x.a.id));
     const main = scored.filter(x => !surIds.has(x.a.id) && (!unmetPrereq(x.a) || gapIds.has(x.a.id))).slice(0, Math.max(0, n - sur.length));
-    const res = main.map(x => ({ id: x.a.id, gap: gapIds.has(x.a.id), surprise: false, why: gapIds.has(x.a.id) ? "Fills a gap in what you know" : (bridgeScore(x.a.id) > 0.7 ? "Connects to what you already know" : "A good idea to learn next") }));
+    const res = main.map(x => ({ id: x.a.id, gap: gapIds.has(x.a.id), surprise: false, why: gapIds.has(x.a.id) ? "Fills a gap in what you know" : (bs(x.a.id) > 0.7 ? "Connects to what you already know" : "A good idea to learn next") }));
     sur.forEach((x, i) => res.splice(Math.min(res.length, 1 + i * 2), 0, { id: x.a.id, gap: false, surprise: true, why: "A surprise from another field" + (dw.top[0] ? ": " + MV.DOMAINS[x.a.domain] + ". You mostly learn " + MV.DOMAINS[dw.top[0]] + "." : "") }));
     return res.slice(0, n);
   }

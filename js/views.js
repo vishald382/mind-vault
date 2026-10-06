@@ -133,12 +133,15 @@
     function draw() {
       holder.innerHTML = ""; const W = 1000, H = 620, s = U.s;
       const nodes = [], idx = {}; const doms = Object.keys(MV.DOMAINS);
-      A().forEach(a => { const st = E.stateIdx(a.id); if (st < 0 && !gopt.unseen) return; const ang = doms.indexOf(a.domain) / doms.length * Math.PI * 2, r = E.rng(a.id.length * 131 + a.title.length)(); idx["a:" + a.id] = nodes.length; nodes.push({ k: "a:" + a.id, a, st, x: W / 2 + Math.cos(ang) * (200 + r * 60), y: H / 2 + Math.sin(ang) * (170 + r * 60) }); });
+      // With a very large library, show only ideas you have met and the ideas directly linked to them.
+      const seenIds = new Set(A().filter(x => E.stateIdx(x.id) >= 0).map(x => x.id)), nb = new Set(), big = A().length > 160;
+      if (gopt.unseen && big) E.edges().forEach(e => { if (seenIds.has(e.a)) nb.add(e.b); if (seenIds.has(e.b)) nb.add(e.a); });
+      A().forEach(a => { const st = E.stateIdx(a.id); if (st < 0 && (!gopt.unseen || (big && !nb.has(a.id)))) return; if (nodes.length >= 240) return; const ang = doms.indexOf(a.domain) / doms.length * Math.PI * 2, r = E.rng(a.id.length * 131 + a.title.length)(); idx["a:" + a.id] = nodes.length; nodes.push({ k: "a:" + a.id, a, st, x: W / 2 + Math.cos(ang) * (200 + r * 60), y: H / 2 + Math.sin(ang) * (170 + r * 60) }); });
       if (gopt.models) MV.MODELS.forEach((m, i) => { idx["m:" + m.id] = nodes.length; nodes.push({ k: "m:" + m.id, m, x: W / 2 + Math.cos(i) * 60, y: H / 2 + Math.sin(i) * 60 }); });
       const edges = [], seenE = new Set();
       E.edges().slice().reverse().forEach(e => { const i = idx["a:" + e.a], j = idx["a:" + e.b], key = [e.a, e.b].sort().join("|"); if (i == null || j == null || seenE.has(key)) return; seenE.add(key); edges.push({ i, j, user: e.src === "user" }); });
       if (gopt.models) A().forEach(a => a.models.forEach(m => { const i = idx["a:" + a.id], j = idx["m:" + m]; if (i != null && j != null) edges.push({ i, j, model: true }); }));
-      for (let it = 0; it < 260; it++) { const k = 1 - it / 260;
+      const IT = nodes.length > 120 ? 110 : 260; for (let it = 0; it < IT; it++) { const k = 1 - it / IT;
         for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const a = nodes[i], b = nodes[j]; let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy + 1; const f = 15000 / d2, d = Math.sqrt(d2); dx /= d; dy /= d; a.x += dx * f * k; a.y += dy * f * k; b.x -= dx * f * k; b.y -= dy * f * k; }
         edges.forEach(e => { const a = nodes[e.i], b = nodes[e.j], dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) + .01, f = (d - (e.model ? 140 : 130)) * 0.02 * k; a.x += dx / d * f; a.y += dy / d * f; b.x -= dx / d * f; b.y -= dy / d * f; });
         nodes.forEach(n => { n.x += (W / 2 - n.x) * 0.005 * k; n.y += (H / 2 - n.y) * 0.008 * k; n.x = Math.max(60, Math.min(W - 60, n.x)); n.y = Math.max(24, Math.min(H - 24, n.y)); }); }

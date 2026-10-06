@@ -28,7 +28,7 @@
     const scroller = h("div", { class: "feed-scroll", tabindex: 0, "aria-label": "Idea feed" });
     root.append(scroller);
     const shown = { idea: new Set(), check: new Set(), rescue: new Set(), bridge: new Set(), model: new Set(), story: new Set() };
-    const ideaLog = []; let n = 0, ideaN = 0, listen = false, active = null;
+    const ideaLog = []; let n = 0, ideaN = 0, listen = false, active = null, recsCache = null;
 
     /* ---------- listen mode ---------- */
     const fab = TTS ? h("button", { class: "listen-fab", "aria-pressed": "false", onclick: () => setListen(!listen) }, "🔊 Listen") : null;
@@ -147,7 +147,8 @@
     const fresh = (set, list, key = x => x) => { let l = list.filter(x => !set.has(key(x))); if (!l.length && list.length) { set.clear(); l = list; } return l; };
     function nextIdea() {
       // Out of every four ideas: two local (Mumbai, Maharashtra, India), one "pinned" (Buffett and Munger, everyday money), one from the wider world.
-      const recs = E.recommend(400).filter(x => !shown.idea.has(x.id)), slot = ["local", "pin", "local", "world"][ideaN++ % 4], kind = x => { const a = E.asset(x.id); return a.region ? "local" : a.pin ? "pin" : "world"; };
+      if (!recsCache || ideaN % 4 === 0) recsCache = E.recommend(400);
+      const recs = recsCache.filter(x => !shown.idea.has(x.id)), slot = ["local", "pin", "local", "world"][ideaN++ % 4], kind = x => { const a = E.asset(x.id); return a.region ? "local" : a.pin ? "pin" : "world"; };
       const r = recs.find(x => kind(x) === slot) || recs[0];
       if (!r) return null; shown.idea.add(r.id); return ideaCard(r);
     }
