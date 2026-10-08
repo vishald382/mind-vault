@@ -13,7 +13,7 @@
 
   let S = load();
   function blank() {
-    return { v: 1, created: Date.now(), ev: {}, rev: {}, conns: [], mlinks: {}, apps: [], attempts: [], missions: [], events: [], prefs: {}, daily: {}, resetAt: 0, demo: false };
+    return { v: 1, created: Date.now(), ev: {}, rev: {}, conns: [], mlinks: {}, apps: [], attempts: [], missions: [], events: [], prefs: {}, daily: {}, requests: [], resetAt: 0, demo: false };
   }
   function load() {
     try { const r = localStorage.getItem(KEY); if (r) return Object.assign(blank(), JSON.parse(r)); } catch (e) {}
@@ -167,7 +167,7 @@
   }
   function recommend(n = 3, o = {}) {
     const r = dayRng(), dw = domainWeights(), top2 = dw.top.slice(0, 2), gs = gaps(), gapIds = new Set(gs.map(g => g.id));
-    const unseen = A.filter(a => stateIdx(a.id) < 0);
+    const unseen = A.filter(a => stateIdx(a.id) < 0 && (!o.filter || o.filter(a)));
     const unmetPrereq = a => (a.requires || []).some(q => stateIdx(q) < 0);
     const bsMemo = new Map(), bs = id => { if (!bsMemo.has(id)) bsMemo.set(id, bridgeScore(id)); return bsMemo.get(id); };
     const scored = unseen.map(a => {
@@ -415,7 +415,7 @@
 
   /* ---------- demo history ---------- */
   function seedDemo() {
-    S = blank(); S.demo = true;
+    const keep = S.prefs, asked = S.requests; S = blank(); S.prefs = keep; S.requests = asked || []; S.demo = true;
     const r = rng(42), t0 = now() - 190 * DAY;
     const skip = new Set(["sarajevo-1914", "semmelweis", "v-sanguine", "flying-buttress"]);
     const order = ["wwii-origins", "cold-war-mad", "nato-article5", "cuban-submarine", "comparative-advantage", "container-shipping", "roman-roads", "amazon-flywheel", "hanoi-rats", "wason-246", "anchoring", "loss-aversion", "buffett-compounding", "margin-of-safety", "weimar-hyperinflation", "wald-bombers", "east-india-company", "hormuz", "russia-ports", "sun-tzu", "ooda-loop", "map-territory", "stoic-control", "dunbar", "v-laconic", "v-equanimity", "v-perspicacious", "thermopylae", "red-queen", "veil-ignorance", "pantheon-dome", "v-obsequious", "v-ephemeral"];
@@ -481,6 +481,8 @@
     out.apps = uni(x => x.id, [L.apps, R.apps]).filter(x => AM[x.assetId]);
     out.attempts = uni(x => x.kind + "|" + x.id + "|" + x.t, [L.attempts, R.attempts]);
     out.missions = uni(x => x.id, [L.missions, R.missions], (a, b) => a.report ? a : b);
+    // Topic requests: one per topic; a request removed on any device stays removed.
+    out.requests = uni(x => String(x.q).toLowerCase(), [L.requests, R.requests], (a, b) => (a.off || b.off) ? Object.assign({}, a, { off: a.off || b.off }) : a);
     out.events = uni(x => x.t + "|" + x.k + "|" + (x.id || ""), [L.events, R.events]).slice(-4000);
     out.prefs = Object.assign({}, R.prefs, L.prefs); out.demo = false;
     S = out; save();

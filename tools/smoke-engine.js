@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm');
 const store={};
 const ctx={console,Math,Date,JSON,localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v}},setTimeout};
 ctx.window=ctx;vm.createContext(ctx);
-for(const f of ['data-assets','data-content','data-india','data-wisdom',...require('fs').readdirSync('js').filter(x=>x.startsWith('pack-')).map(x=>x.slice(0,-3)),'engine','coach'])vm.runInContext(fs.readFileSync('js/'+f+'.js','utf8'),ctx,{filename:f});
+for(const f of ['data-assets','data-content','data-india','data-wisdom',...require('fs').readdirSync('js').filter(x=>x.startsWith('pack-')).map(x=>x.slice(0,-3)),'engine','topics','coach'])vm.runInContext(fs.readFileSync('js/'+f+'.js','utf8'),ctx,{filename:f});
 const MV=ctx.MV,E=MV.E;
 // integrity
 const ids=new Set(MV.ASSETS.map(a=>a.id)),mids=new Set(MV.MODELS.map(m=>m.id));
@@ -32,3 +32,19 @@ const a=E.asset('hanoi-rats');
 r=MV.Coach.analyzeExplain("They paid a bounty for rat tails because they wanted fewer rats. But the tail was only a proxy for the goal, so people cut tails off and released the rats to breed, which means the city ended up with more rats: the opposite effect.",a,'30s');console.log('ex good',r.overall,r.pass,JSON.stringify(r.scores),r.coaching);
 r=MV.Coach.analyzeExplain("It was about rats in a city and it went badly.",a,'30s');console.log('ex bad',r.overall,r.pass,r.coaching);
 r=MV.Coach.analyzeConvo("That reminds me of something. In 1902 Hanoi paid a bounty for rat tails, and people started breeding rats to collect it. Does your team have a metric like that?",a);console.log('convo',r.overall,r.pass,JSON.stringify(r.scores));
+
+// topics: tiles, typed interests, requests, the 85/15 mix, sync of requests
+{const T=MV.Topics;E.reset();
+const empty=T.TILES.filter(t=>!T.count(t[0]));console.log(empty.length?'FAIL empty tiles '+empty.map(t=>t[0]):'OK tiles '+T.TILES.length);
+T.toggle('nature');const f=T.filter();const recs=E.recommend(50,{filter:f,noSurprise:true});console.log(recs.length&&recs.every(r=>f(E.asset(r.id)))?'OK nature-only recs '+recs.length:'FAIL nature recs');
+const other=E.recommend(20,{filter:a=>!f(a),noSurprise:true});console.log(other.every(r=>!f(E.asset(r.id)))?'OK other recs '+other.length:'FAIL other recs');
+let sur=0;for(let i=0;i<1000;i++)if(T.isSurpriseSlot(i))sur++;console.log(sur===150?'OK surprise share 15%':'FAIL surprise '+sur);
+const b=T.addInterest('birds'),y=T.addInterest('yoga'),z=T.addInterest('zzqx'),n=T.addInterest('history');
+console.log(b.n>=8&&!b.request&&T.interests().includes('birds')?'OK birds '+b.n:'FAIL birds '+JSON.stringify(b));
+console.log(y.request&&T.interests().includes('yoga')&&z.request&&!T.interests().includes('zzqx')?'OK requests '+T.requests().map(r=>r.q+':'+r.n).join(','):'FAIL requests');
+console.log(n.tile==='history'&&T.topics().includes('history')?'OK typed tile':'FAIL typed tile '+JSON.stringify(n));
+const g=T.filter('q:birds');console.log(MV.ASSETS.filter(g).length===b.n?'OK chip filter':'FAIL chip filter');
+T.removeRequest('yoga');const R=JSON.parse(E.syncPayload());R.requests=R.requests.map(r=>r.q==='yoga'?Object.assign({},r,{off:undefined}):r).concat([{t:Date.now(),q:'Cricket',n:8}]);E.mergeState(R);
+console.log(T.requests().map(r=>r.q).sort().join(',')==='Cricket,zzqx'?'OK request sync':'FAIL request sync '+T.requests().map(r=>r.q));
+T.setProfile('Asha');E.seedDemo();console.log(T.profile().name==='Asha'&&T.topics().includes('nature')&&T.requests().length===2?'OK demo keeps profile and requests':'FAIL demo profile');
+console.log(T.requestsText().split(String.fromCharCode(10))[0]);E.reset();console.log(T.needsSetup()?'OK reset asks setup again':'FAIL reset');}

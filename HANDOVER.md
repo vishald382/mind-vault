@@ -30,6 +30,9 @@ A free web app (no server, no build step) that works like an Instagram/TikTok fe
 | `js/data-wisdom.js` | Buffett and Munger ideas and 10 Munger models. |
 | `js/pack-*.js` | Content packs (36 so far, about 30 ideas each). |
 | `js/data-daily.js`, `js/data-daily-2.js` | 190 words and 190 quotes of the day. |
+| `js/topics.js` | Topic tiles (`MV.Topics.TILES`), typed-interest matching, the 85/15 mix rule, topic requests, profile name. No DOM. |
+| `js/profile.js` | First-open welcome (name, then topics), the topic picker, "My topics" card in Settings. |
+| `js/share.js` | Share button, card image (canvas, 1080×1350 JPEG), write-up text and link. `SITE` is the one place the web address is set. |
 | `js/engine.js` | The brain: mastery ladder, memory decay, recommendations, sessions, graph, gaps, analytics, sync merge. |
 | `js/coach.js` | Scoring of explanations, stories and conversation replies; voice input. |
 | `js/feed.js` | The scrolling feed, the Today card, Listen mode. |
@@ -57,7 +60,9 @@ Fields currently in use: history, geography, economics, business, psychology, sc
 4. Test (from the project folder):
    - `node tools/smoke-engine.js` (engine runs with all content)
    - `node tools/make-screens-test.js`, then open `_test.html` in headless Edge with `--dump-dom`; every line should start with OK.
-   - `node tools/make-feed-test.js`, then the same; it scrolls 45 feed cards.
+   - `node tools/make-feed-test.js`, then the same; it scrolls 45 feed cards. `TOPICS="nature,mumbai,q:birds" node tools/make-feed-test.js` chooses topics first and reports how many idea cards were on topic and how many were surprises (expect about 15%).
+   - `node tools/make-share-test.js`, then open `http://localhost:8765/_test.html` (start `node tools/serve.js` first) so Wikipedia photos load; every line should start with OK and say `photo=true` for cards with photos.
+   - Headless Edge never goes narrower than about 500px. For a true phone-width screenshot, put the page in a 390px-wide `<iframe>` and screenshot that.
    - Headless Edge path: `/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`. Use `--virtual-time-budget`. Delete `_test.html` afterwards (`_*.html` is git-ignored).
 5. Publish: `git add -A && git commit && git push`. Pages rebuilds in about a minute. Check with `curl` that the new file returns 200 and `sw.js` shows the new version.
 
@@ -68,25 +73,26 @@ Machine notes: Windows, Git Bash. **Do not use `python`** (it hangs). Use `node`
 - 1,156 ideas, 114 stories, 47 mental models, 2,474 links, 190 daily words and quotes.
 - About 15% Mumbai/Maharashtra, 30% India, the rest world, Buffett/Munger, money, models and nature.
 - 120 "right now" facts (as of 2026) that will need refreshing over time.
+- Service worker at `mindvault-v10` (topics and sharing).
 
-## Next work (approved by Vishal on 8 October 2026)
+## Topics and sharing (built 8 October 2026)
 
-His wife liked the app and gave two pieces of feedback. Approved plan:
+**Her own topics.** On first open (feed or Today), the app asks for a name, then "What interests you?" with 24 tiles and a box to type any interest. A shared link (`#/asset/<id>`) is never blocked by this.
+- Saved in `S.prefs`: `profile {name, at}`, `topics` (tile keys), `interests` (typed words), `surprise` (false = off). Saved in `S.requests`: `[{t, q, n, off}]`. Both sync; a removed request stays removed on every device.
+- A typed interest is matched as whole words (plurals too) against title, fact, why, field and region. A word that is really a tile ("nature", "history") picks the tile. 8 or more matches: it becomes her own topic. Fewer: she is told honestly and it is saved as a **topic request**.
+- Feed: 3 of every 20 idea cards are surprises from other topics (15%); the rest come from her topics. When her topics run out, other topics carry on as surprises. Stories only come from her topics. With no topics chosen, the feed works as before.
+- Chips above the feed filter to one topic (no Today card, no surprises, an end card when that topic runs out).
+- Settings → My topics: name, tiles, typed interests, surprise switch, and the request list with a "Copy the list" button.
+- Loading the sample history keeps the name, topics and requests. "Reset everything" asks for them again.
 
-### 1. Her own topics and her own profile
-She uses **her own phone**, so her progress is already separate. Build:
-- A first-run **profile** step: her name, then "What interests you?"
-- **Topic picker**: about 20 tiles (Mumbai, Maharashtra, India, Nature & animals, History, Science & space, Health, Money, Business, Psychology, Stories, Great thinkers, Right now 2026, and so on) **plus a free-text box** where she can type any interest.
-- Typed interests are matched against the library (titles, facts, fields). The feed then uses about 85% chosen topics and 15% surprises (with a setting to turn surprises off). Topics she does not choose rarely appear but stay in the library.
-- Topic chips at the top of the feed for a quick filter (for example "Nature only").
-- "My topics" in Settings to change them later.
-- If the library has few cards for a typed interest, say so honestly and save it as a **topic request** (shown in Settings, included in sync). **Option A only:** new content for requests is written in a later session using the pack method above. Do **not** add in-app AI generation.
+**Turning topic requests into content (Option A, no in-app AI).** Ask her to tap Settings → My topics → "Copy the list" and send it to Vishal. Then write packs for those topics with the pack method above, and make sure the words she typed appear in titles or facts, so her saved interest finds the new cards with no change on her phone.
 
-### 2. Sharing a card
-- A **Share** button on every card that opens the phone's share sheet (Web Share API, with a copy-to-clipboard fallback).
-- Shares an **image of the card** (photo or emoji banner, title, the key fact) **with a short write-up below it** (title, one or two sentences, and a link).
-- The link opens **that exact card** on the website (`#/asset/<id>` already exists), even for someone who has never used the app.
-- Generate the image in the browser with a canvas. Wikimedia photos may block canvas export (CORS); test this, and fall back to the emoji banner design if the photo cannot be drawn.
+**Sharing.** Every idea, story and mental-model card, and the idea page, has "↗ Share". It opens a sheet with the image of the card, the write-up (title, one or two sentences, link) and Share / Copy text / Save image. The image is made first and Share is a second tap, because phones only open the share sheet straight after a tap. Wikimedia sends `Access-Control-Allow-Origin: *`, so photos can be drawn (tested); if one fails, the emoji design is used. The idea page now shows the full idea even before it is "seen", with a "Someone shared this card with you" note for people who have never used the app.
 
-### Also tell the user
-Phone install steps: Android Chrome → menu → Add to Home screen → Install (choose "Create shortcut" if Play Protect objects). iPhone Safari → Share → Add to Home Screen.
+## Later stage: Play Store (discussed 8 October 2026, not started)
+
+The screens would stay the same; the foundations would change. Before a public launch: Google sign-in and online saving (Firebase or Supabase) instead of browser storage and gist sync; topic requests sent to one shared list; your own domain (needed for a Play Store app, and for per-card share pages with WhatsApp previews; then change `SITE` in `js/share.js`); privacy policy, data safety form, account deletion; wrap the web app with PWABuilder (Trusted Web Activity); $25 developer account and, for new personal accounts, a closed test with 12 testers for 14 days. Vishal's plan: let his wife and a few friends use it for some weeks first.
+
+## Phone install steps (tell new users)
+
+Android Chrome → menu → Add to Home screen → Install (choose "Create shortcut" if Play Protect objects). iPhone Safari → Share → Add to Home Screen.

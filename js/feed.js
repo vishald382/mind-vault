@@ -24,11 +24,26 @@
   }
   window.addEventListener("hashchange", stopSpeaking);
 
+  /* ---------- topic chips: "All my topics", or one topic only ---------- */
+  const T = MV.Topics;
+  let only = null;
+  function topicBar() {
+    const pick = k => { only = k; MV.App.render(); };
+    return h("div", { class: "topic-bar", role: "toolbar", "aria-label": "Choose a topic" },
+      h("button", { class: "chip" + (only ? "" : " on"), onclick: () => pick(null) }, "All my topics"),
+      T.keys().map(k => h("button", { class: "chip" + (only === k ? " on" : ""), onclick: () => pick(k) }, T.emoji(k) + " " + T.label(k))),
+      h("a", { class: "chip", href: "#/settings", title: "Change my topics" }, "✎ Change"));
+  }
+
   function feed(root) {
+    if (only && !T.keys().includes(only)) only = null;
+    const mine = T.filter(only), bar = T.hasTopics() ? topicBar() : null;
     const scroller = h("div", { class: "feed-scroll", tabindex: 0, "aria-label": "Idea feed" });
+    if (bar) { root.classList.add("chips"); root.append(bar); }
     root.append(scroller);
+    if (bar) { const on = bar.querySelector(".on"); if (on) bar.scrollLeft = on.offsetLeft - 40; }
     const shown = { idea: new Set(), check: new Set(), rescue: new Set(), bridge: new Set(), model: new Set(), story: new Set() };
-    const ideaLog = []; let n = 0, ideaN = 0, listen = false, active = null, recsCache = null;
+    const ideaLog = []; let n = 0, ideaN = 0, listen = false, active = null, recsCache = null, recsOther = [], ended = false;
 
     /* ---------- listen mode ---------- */
     const fab = TTS ? h("button", { class: "listen-fab", "aria-pressed": "false", onclick: () => setListen(!listen) }, "🔊 Listen") : null;
@@ -61,7 +76,7 @@
 
     function todayCard() {
       const D = MV.Daily, q = D.quote(), w = D.word(), done = D.fiveDone();
-      const date = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+      const name = T.profile().name, date = (name ? T.greeting() + ", " + name + " · " : "") + new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
       const card = shell("var(--gold)", MV.Media.banner("☀️"), h("div", { class: "eyebrow" }, date),
         q ? h("div", { class: "mb" }, h("div", { class: "tiny muted" }, "QUOTE OF THE DAY"), h("p", { class: "lede", style: "margin-bottom:.3rem" }, "“" + q.q + "”"), h("p", { class: "small", style: "margin-bottom:.3rem" }, h("b", {}, q.by), q.who ? h("span", { class: "muted" }, ", " + q.who) : null), h("p", { class: "small muted" }, q.means)) : null,
         w ? h("div", { class: "callout mb" }, h("div", { class: "tiny muted" }, "WORD OF THE DAY"), h("p", { style: "margin:.2rem 0" }, h("b", { style: "font:600 1.25rem var(--serif)" }, w.w), h("span", { class: "muted small" }, `  ${w.say} · ${w.pos}`)), h("p", { class: "small", style: "margin-bottom:.3rem" }, w.meaning), h("p", { class: "small muted", style: "margin:0" }, "“" + w.example + "”")) : null,
@@ -80,7 +95,8 @@
         h("h2", {}, a.title), h("p", { class: "lede" }, a.fact), h("p", {}, a.why),
         br ? h("div", { class: "callout teal mb" }, h("b", {}, "You already know something that helps to explain this. "), `${E.asset(br.other).title}: ${br.note}`) : null,
         h("details", { class: "mb" }, h("summary", {}, "How it works"), h("p", {}, a.mech), a.models.length ? h("div", { class: "row small" }, a.models.map(m => h("span", { class: "chip static" }, E.model(m).name))) : null),
-        actions(h("button", { class: "btn", onclick: e => { e.target.remove(); quiz.append(mcq(a)); } }, "Quick check"), h("a", { class: "btn ghost", href: "#/asset/" + a.id }, "Learn more →"), sayBtn(() => card), status), quiz);
+        actions(h("button", { class: "btn", onclick: e => { e.target.remove(); quiz.append(mcq(a)); } }, "Quick check"), h("a", { class: "btn ghost", href: "#/asset/" + a.id }, "Learn more →"), sayBtn(() => card), MV.Share.button({ asset: a.id }), status), quiz);
+      card.dataset.id = a.id; if (rec.surprise) card.dataset.sur = "1";
       card._dwell = () => {
         if (E.has(a.id, "seen")) return;
         E.mark(a.id, "seen"); E.touch(a.id, 1, "seen"); E.logEvent({ k: "learn", id: a.id, surprise: !!rec.surprise, via: "feed" });
@@ -124,7 +140,7 @@
     function modelCard(m) {
       const ex = E.assets().filter(a => a.models.includes(m.id) && E.stateIdx(a.id) >= 0).slice(0, 3);
       const card = shell("var(--violet)", MV.Media.banner("🧠"), h("div", { class: "eyebrow", style: "color:var(--violet)" }, "Mental model"), h("h2", {}, m.name), h("p", { class: "lede" }, m.line),
-        h("p", {}, h("b", {}, "Ask: "), m.ask), h("p", { class: "muted" }, h("b", {}, "Example: "), m.ex),
+        h("p", {}, h("b", {}, "Ask: "), m.ask), h("p", { class: "muted" }, h("b", {}, "Example: "), m.ex), actions(MV.Share.button({ model: m.id })),
         ex.length ? h("div", { class: "row small" }, h("span", { class: "muted" }, "You have seen it in:"), ex.map(a => h("a", { class: "chip", href: "#/asset/" + a.id }, a.title))) : null);
       card._say = () => ["A mental model: " + m.name + ".", m.line, "Ask yourself: " + m.ask, "For example: " + m.ex];
       return card;
@@ -136,7 +152,7 @@
       const open = () => { if (card._read) return; more.append(full, h("div", { class: "callout mb" }, h("b", {}, "Meaning: "), st.meaning)); card._read = true; card._dwell(); };
       const card = shell(MV.DOMAIN_COLORS[a.domain], MV.Media.hero(a.id), h("div", { class: "eyebrow" }, "Story"), h("h2", {}, st.title), h("p", { class: "lede" }, st.hook), more,
         actions(h("button", { class: "btn", onclick: e => { e.target.remove(); open(); } }, "Read the story"),
-          h("button", { class: "btn ghost", onclick: () => MV.Session.startSteps([{ kind: "story", id: st.assetId }], "Storytelling coach") }, "Practise telling it"), sayBtn(() => card)));
+          h("button", { class: "btn ghost", onclick: () => MV.Session.startSteps([{ kind: "story", id: st.assetId }], "Storytelling coach") }, "Practise telling it"), sayBtn(() => card), MV.Share.button({ story: st.id })));
       card._dwell = () => { if (!card._read || E.has(a.id, "seen")) return; E.mark(a.id, "seen"); E.touch(a.id, 1, "seen"); E.logEvent({ k: "learn", id: a.id, via: "feed" }); ideaLog.push(a.id); };
       card._say = () => ["A story: " + st.title + ".", st.hook, 400, st.setting, st.conflict, st.surprise, st.turning, st.payoff, 400, "What it means.", st.meaning];
       card._heard = open;
@@ -147,10 +163,22 @@
     const fresh = (set, list, key = x => x) => { let l = list.filter(x => !set.has(key(x))); if (!l.length && list.length) { set.clear(); l = list; } return l; };
     function nextIdea() {
       // Out of every four ideas: two local (Mumbai, Maharashtra, India), one "pinned" (Buffett and Munger, everyday money), one from the wider world.
-      if (!recsCache || ideaN % 4 === 0) recsCache = E.recommend(400);
-      const recs = recsCache.filter(x => !shown.idea.has(x.id)), slot = ["local", "pin", "local", "world"][ideaN++ % 4], kind = x => { const a = E.asset(x.id); return a.region ? "local" : a.pin ? "pin" : "world"; };
-      const r = recs.find(x => kind(x) === slot) || recs[0];
-      if (!r) return null; shown.idea.add(r.id); return ideaCard(r);
+      // With chosen topics, the same mix is used inside them, and 3 of every 20 ideas are surprises from other topics (unless turned off).
+      const k = ideaN++, all = mine && !only;
+      if (!recsCache || k % 4 === 0) { recsCache = E.recommend(400, mine ? { filter: mine, noSurprise: true } : { noSurprise: !T.surpriseOn() }); recsOther = all ? E.recommend(60, { filter: a => !mine(a), noSurprise: true }) : []; }
+      const slot = ["local", "pin", "local", "world"][k % 4], kind = x => { const a = E.asset(x.id); return a.region ? "local" : a.pin ? "pin" : "world"; };
+      const pick = l => { const recs = l.filter(x => !shown.idea.has(x.id)); return recs.find(x => kind(x) === slot) || recs[0]; };
+      const surprise = l => { const x = pick(l); return x && Object.assign({}, x, { surprise: true }); };
+      // When every card in her topics has been seen, the other topics carry on as surprises.
+      const r = (all && T.surpriseOn() && T.isSurpriseSlot(k) && surprise(recsOther)) || pick(recsCache) || (all && surprise(recsOther));
+      if (!r) return only && !ended ? (ended = true, endCard()) : null;
+      shown.idea.add(r.id); return ideaCard(r);
+    }
+    function endCard() {
+      const card = shell("var(--gold)", MV.Media.banner(T.emoji(only)), h("div", { class: "eyebrow" }, T.label(only)), h("h2", {}, "You have seen every card in this topic for now."),
+        h("p", { class: "muted" }, "Practise the ones you have seen, or go back to all your topics."), actions(h("button", { class: "btn primary", onclick: () => { only = null; MV.App.render(); } }, "All my topics")));
+      card._say = () => ["You have seen every card in this topic for now."];
+      return card;
     }
     function nextCheck() {
       const pool = [...new Set([...ideaLog, ...E.assets().filter(a => E.stateIdx(a.id) === 0).map(a => a.id)])].filter(id => !E.has(id, "recognized"));
@@ -172,7 +200,7 @@
       const l = fresh(shown.model, met.length ? met : [], m => m.id); if (!l.length) return null; shown.model.add(l[0].id); return modelCard(l[0]);
     }
     function nextStory() {
-      const l = MV.STORIES.filter(s => !shown.story.has(s.id) && !shown.idea.has(s.assetId) && E.stateIdx(s.assetId) < 0);
+      const l = MV.STORIES.filter(s => !shown.story.has(s.id) && !shown.idea.has(s.assetId) && E.stateIdx(s.assetId) < 0 && (!mine || mine(E.asset(s.assetId))));
       if (!l.length) return null; shown.story.add(l[0].id); shown.idea.add(l[0].assetId); return storyCard(l[0]);
     }
     // Mostly new ideas, with something active every third card.
@@ -192,9 +220,11 @@
     scroller.addEventListener("scroll", top, { passive: true });
     function more(k) { for (let i = 0; i < k; i++) { const c = nextCard(); if (!c) break; scroller.append(c); io.observe(c); } }
 
-    const first = todayCard(); scroller.append(first); io.observe(first); active = first;
+    // A topic chip goes straight to that topic, without the Today card.
+    if (!only) { const t = todayCard(); scroller.append(t); io.observe(t); }
     more(4);
-    first.append(h("div", { class: "fhint", "aria-hidden": "true" }, "Scroll ↓"));
+    const first = active = scroller.firstElementChild;
+    if (first) first.append(h("div", { class: "fhint", "aria-hidden": "true" }, "Scroll ↓"));
     const step = d => scroller.scrollBy({ top: d * scroller.clientHeight, behavior: "smooth" });
     scroller.addEventListener("keydown", e => {
       if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;
