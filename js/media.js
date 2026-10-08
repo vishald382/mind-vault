@@ -874,6 +874,7 @@
     "na-pigeon-kabutarkhana": ["🕊️","https://upload.wikimedia.org/wikipedia/commons/3/3d/Postduif.jpg","https://en.wikipedia.org/wiki/Homing_pigeon",0],
     "na-lapwing": ["🪶","https://upload.wikimedia.org/wikipedia/commons/4/4e/Red-wattled_lapwing_%28Vanellus_indicus%29_Photograph_by_Shantanu_Kuveskar.jpg","https://en.wikipedia.org/wiki/Red-wattled_lapwing",0],
     "na-hornbill-nest": ["🪵","https://upload.wikimedia.org/wikipedia/commons/e/ee/Great_hornbill_Photograph_by_Shantanu_Kuveskar.jpg","https://en.wikipedia.org/wiki/Great_hornbill",0],
+    "na-baya-weaver": ["🪺","https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Baya_weaver_bird_on_its_nest_%28India%2C_2022%29.jpg/960px-Baya_weaver_bird_on_its_nest_%28India%2C_2022%29.jpg","https://en.wikipedia.org/wiki/Baya_weaver",0],
     "na-tailorbird": ["🧵","https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Common_tailorbird_%28Orthotomus_sutorius_guzuratus%29_male_Kerala.jpg/960px-Common_tailorbird_%28Orthotomus_sutorius_guzuratus%29_male_Kerala.jpg","https://en.wikipedia.org/wiki/Common_tailorbird",0],
     "na-sunbird-hummingbird": ["🌺","https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Purple_Sunbird_Male%2C_Bangalore%2C_India.jpeg/960px-Purple_Sunbird_Male%2C_Bangalore%2C_India.jpeg","https://en.wikipedia.org/wiki/Purple_sunbird",0],
     "na-peacock-darwin": ["🦚","https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Peacock_on_tree_%2852077240794%29.jpg/960px-Peacock_on_tree_%2852077240794%29.jpg","https://en.wikipedia.org/wiki/Indian_peafowl",0],
@@ -893,6 +894,7 @@
     "na-snakebite-india": ["🏥","https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Cobra_bite_in_Thailand_%28image%2C_2023%29.jpg/960px-Cobra_bite_in_Thailand_%28image%2C_2023%29.jpg","https://en.wikipedia.org/wiki/Snakebite",0],
     "na-flying-fox": ["🦇","https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/047_Indian_flying_fox_in_Keoladeo_National_Park_Photo_by_Giles_Laurent.jpg/960px-047_Indian_flying_fox_in_Keoladeo_National_Park_Photo_by_Giles_Laurent.jpg","https://en.wikipedia.org/wiki/Indian_flying_fox",0],
     "na-ganges-dolphin": ["🐬","https://upload.wikimedia.org/wikipedia/commons/8/81/Ganges_River_Dolphin_cropped.jpg","https://en.wikipedia.org/wiki/South_Asian_river_dolphin",0],
+    "na-mudskipper": ["🐟","https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/GambianMudskippers.jpg/960px-GambianMudskippers.jpg","https://en.wikipedia.org/wiki/Mudskipper",0],
     "na-globe-skimmer": ["🪰","https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Pantala_flavescens-Kadavoor-2017-05-04-002.jpg/960px-Pantala_flavescens-Kadavoor-2017-05-04-002.jpg","https://en.wikipedia.org/wiki/Pantala_flavescens",0],
     "na-fireflies-bhandardara": ["✨","https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Photuris_lucicrescens.jpg/960px-Photuris_lucicrescens.jpg","https://en.wikipedia.org/wiki/Firefly",0],
     "np-strangler-fig": ["🌳","https://upload.wikimedia.org/wikipedia/commons/4/46/Ficus_watkinsiana_on_Syzygium_hemilampra-Iluka.jpg","https://en.wikipedia.org/wiki/Strangler_fig",0],
@@ -951,7 +953,9 @@
     "nb-cicada-primes": ["🪲","https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Magicicada_septendecim_TPopp.jpg/960px-Magicicada_septendecim_TPopp.jpg","https://en.wikipedia.org/wiki/Periodical_cicadas",0],
     "nb-dung-beetle-milky-way": ["🌌","https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Scarabaeus_viettei_01.jpg/960px-Scarabaeus_viettei_01.jpg","https://en.wikipedia.org/wiki/Dung_beetle",0],
     "nb-vampire-bat": ["🦇","https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Desmo-Flug-01.jpg/960px-Desmo-Flug-01.jpg","https://en.wikipedia.org/wiki/Common_vampire_bat",0],
-    "nb-slime-mould-tokyo": ["🍄","https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Physarum_polycephalum_plasmodium.jpg/960px-Physarum_polycephalum_plasmodium.jpg","https://en.wikipedia.org/wiki/Physarum_polycephalum",0]
+    "nb-slime-mould-tokyo": ["🍄","https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Physarum_polycephalum_plasmodium.jpg/960px-Physarum_polycephalum_plasmodium.jpg","https://en.wikipedia.org/wiki/Physarum_polycephalum",0],
+    "ni-court-backlog": ["🏛️","https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Emblem_of_the_Supreme_Court_of_India.svg/1280px-Emblem_of_the_Supreme_Court_of_India.svg.png","https://en.wikipedia.org/wiki/Supreme_Court_of_India",1],
+    "nm-pune-metro": ["🚈","https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Titagarh_Wagon_Pune_Metro.jpg/960px-Titagarh_Wagon_Pune_Metro.jpg","https://en.wikipedia.org/wiki/Pune_Metro",0]
   };
   const emoji = id => (MV.MEDIA[id] || [(MV.E.asset(id) || {}).emoji || "💡"])[0];
   function hero(id, cls) {
